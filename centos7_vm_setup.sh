@@ -28,44 +28,7 @@ function addNFSMount {
 
 
 function network {
-
-  PS3="Choice: "
-
-  select opt in \
-    'Create bridge'\
-    'Configure interface'\
-    'TBA'
-  do
-    case $opt in
-      'Create bridge')
-        read -p 'Interface name (br-X): ' ifaceName
-        read -p 'Interface IP (10.0.5.X/24): ' ifaceAddresses
-        read -p 'Interface Gateway (10.0.5.1): ' ifaceGateway
-        nmcli conn add ifname $ifaceName type bridge con-name $ifaceName
-        nmcli conn modify id $ifaceName +ipv4.method manual +ipv4.addresses $if$
-
-      if [ $ifaceGateway == '' ]; then
-          nmcli conn modify id $ifaceName +ipv4.gateway $ifaceGateway
-        fi
-        nmcli conn up id $ifaceName
-      ;;
-      'Configure interface')
-        select ifaceName in $(nmcli -t device | awk -F: '{print $1}');
-        do
-	  echo 'Updating' $ifaceName
-          read -p 'IP Address (10.0.5.x/24): ' $ifaceAddress
-          nmcli conn modify id $ifaceName +ipv4.address $ifaceAddress +ipv4.method manual
-          nmcli connection up $ifaceName
-        done
-      ;;
-      'TBA') networkTBA;;
-      *)
-        exit;
-        break;
-     ;;
-    esac
-  done
-
+  ./helpers/network.sh
 }
 
 function unzip {
