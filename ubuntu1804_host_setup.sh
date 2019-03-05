@@ -4,97 +4,60 @@
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd)"
 
-function removeSudoPassword {
-  echo 'made it here'
-}
+function main() {
+  #Check that the script is being run as SUDO.
+  if [ "root" = $USER ]; then
+    clear
+    echo 'Script is running as SUDO, as expected. xx'
 
-function setupNFSServer {
+    PS3="Choice: "
 
-  apt -y install nfs-kernel-server
-
-
-  echo 'The folder to share will have its group, owner and permissions changed.'
-  read -e -p 'Folder to share: ' shareFolder
-
-  mkdir $shareFolder 2> /dev/null
-  if [ $? -eq 0 ]; then
-    echo 'Configuring permissions'
-    chown nobody:nogroup $shareFolder
-    chmod 777 $shareFolder  
+    select opt in \
+      'Update/Upgrade'\
+      'Install KVM'\
+      'Install Git'\
+      'Install OpenVPN Client'\
+      'Configure CIFS'\
+      'Setup NFS Server'\
+      'Setup networking'\
+      'Remove SUDO Password Requirement'\
+      'Add desktop icon'
+      'Exit'
+    do
+      case $opt in
+        'Update/Upgrade') update;;
+        'Install KVM') kvm;;
+        'Install Git') git;;
+        'Install OpenVPN Client') openvpn;;
+        'Configure CIFS') cifs;;
+        'Setup networking') network;;
+        'Remove SUDO Password Requirement') removeSudoPassword;;
+        'Add desktop icon') addDesktopIcon;;
+        'Setup NFS Server') setupNFSServer;;
+        *)
+          exit;
+          break;
+        ;;
+      esac
+    done
   else
-    echo 'The directory exists, folder permissions have not been modified'
-    printf 'The seleced folder has the following permissions, owner and group: '
-    ls -la $shareFolder | awk 'NR==2 {print $1,$3,$4}'
+    echo 'Script is not running as SUDO (required). Exiting with no changes.'
   fi
+}
 
-  read -p 'What subnet can access the folder (10.0.0.0/24): ' subnet
-  echo "$shareFolder $subnet(rw,sync,no_subtree_check)" >> /etc/exports
-
-  exportfs -a
-  case $? in 
-    0) echo -e "[ ${GREEN}SUCCESS${NC} ] NFS share exported";;
-    *) echo -e "[ ${RED}FAILURE${NC} ] There was an error in running exportfs -a";;
-  esac
-
-  systemctl restart nfs-kernel-server
-
-  #Firewall configurationn may be required for some systems
-
+#Update and upgrade the system
+function update {
+  apt -y update
+  apt -y upgrade
 }
 
 
-function add-repos {
-  #For Ntop
-  echo 'add repos'
- # add-apt-repository universe
-  #wget http://apt-stable.ntop.org/18.04/all/apt-ntop-stable.deb
-  #dpkg -i apt-ntop-stable.deb
-
-  #apt install pfring nprobe ntopng ntopng-data n2disk cento nbox
-}
-
-
-function virtstuff {
-
-  read -p 'What is the original VM to clone: ' originalDomain
-  read -p 'What is the new VM name: ' newDomain
-
-  virt-clone --original $originalDomain --name $newDomain --auto-clone
-}
-
-function sublime {
-
-  wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | apt-key add -
-  dd-apt-repository 'deb https://download.sublimetext.com/ apt/stable/'
-  apt-get -y install sublime-text
-
-}
-
-
-function network {
-  ./helpers/network.sh
-}
-
-function github {
-  apt -y install git
-
-  read -p "Email to use for git registration: " email
-  read -p "Name to use for git registration: " name
-
-  git config --global user.email $email
-  git config --global user.name $name
-}
-
-function openvpn {
-  apt install network-manager-openvpn-gnome openvpn-systemd-resolved
-
-  #Not clear if this is required
-  #apt install openvpn
-}
-
+#
 function cifs {
   apt install cifs-utils
 
@@ -122,10 +85,6 @@ function cifs {
   done
 }
 
-function update {
-  apt -y update
-  apt -y upgrade
-}
 
 function kvm {
   #KVM
@@ -183,40 +142,103 @@ EOF
   fi
 }
 
+#Install and conduct basic configuration of git
+function github {
+  apt -y install git
 
-#Check that the script is being run as SUDO.
-if [ "root" = $USER ]; then
-  clear
-  echo 'Script is running as SUDO, as expected. xx'
+  read -p "Email to use for git registration: " email
+  read -p "Name to use for git registration: " name
 
-  PS3="Choice: "
+  git config --global user.email $email
+  git config --global user.name $name
+}
 
-  select opt in \
-    'Update/Upgrade'\
-    'Install KVM'\
-    'Install Git'\
-    'Install OpenVPN Client'\
-    'Configure CIFS'\
-    'Setup NFS Server'\
-    'Setup networking'\
-    'Remove SUDO Password Requirement'\
-    'Exit'
-  do
-    case $opt in
-      'Update/Upgrade') update;;
-      'Install KVM') kvm;;
-      'Install Git') git;;
-      'Install OpenVPN Client') openvpn;;
-      'Configure CIFS') cifs;;
-      'Setup networking') network;;
-      'Remove SUDO Password Requirement') removeSudoPassword;;
-      'Setup NFS Server') setupNFSServer;;
-      *)
-        exit;
-        break;
-      ;;
-    esac
-  done
-else
-  echo 'Script is not running as SUDO (required). Exiting with no changes.'
-fi
+function openvpn {
+  apt install network-manager-openvpn-gnome openvpn-systemd-resolved
+
+  #Not clear if this is required
+  #apt install openvpn
+}
+
+
+#
+function setupNFSServer {
+
+  apt -y install nfs-kernel-server
+
+
+  echo 'The folder to share will have its group, owner and permissions changed.'
+  read -e -p 'Folder to share: ' shareFolder
+
+  mkdir $shareFolder 2> /dev/null
+  if [ $? -eq 0 ]; then
+    echo 'Configuring permissions'
+    chown nobody:nogroup $shareFolder
+    chmod 777 $shareFolder  
+  else
+    echo 'The directory exists, folder permissions have not been modified'
+    printf 'The seleced folder has the following permissions, owner and group: '
+    ls -la $shareFolder | awk 'NR==2 {print $1,$3,$4}'
+  fi
+
+  read -p 'What subnet can access the folder (10.0.0.0/24): ' subnet
+  echo "$shareFolder $subnet(rw,sync,no_subtree_check)" >> /etc/exports
+
+  exportfs -a
+  case $? in 
+    0) echo -e "[ ${GREEN}SUCCESS${NC} ] NFS share exported";;
+    *) echo -e "[ ${RED}FAILURE${NC} ] There was an error in running exportfs -a";;
+  esac
+
+  systemctl restart nfs-kernel-server
+
+  echo "[   NOTE  ] Firewall configurationn may be required for some systems."
+
+}
+
+
+function add-repos {
+  #For Ntop
+  echo 'add repos'
+ # add-apt-repository universe
+  #wget http://apt-stable.ntop.org/18.04/all/apt-ntop-stable.deb
+  #dpkg -i apt-ntop-stable.deb
+
+  #apt install pfring nprobe ntopng ntopng-data n2disk cento nbox
+}
+
+
+function virtstuff {
+
+  read -p 'What is the original VM to clone: ' originalDomain
+  read -p 'What is the new VM name: ' newDomain
+
+  virt-clone --original $originalDomain --name $newDomain --auto-clone
+}
+
+function sublime {
+
+  wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | apt-key add -
+  dd-apt-repository 'deb https://download.sublimetext.com/ apt/stable/'
+  apt-get -y install sublime-text
+
+}
+
+function network {
+  $DIR/helpers/network.sh
+}
+
+function removeSudoPassword {
+  echo 'made it here'
+}
+
+#Creates a desktop icon for a script
+function addDesktopIcon {
+  echo "Creating Desktop Icon"
+  read -p 'Icon name: ' iconName
+  read -e -p 'Path to script' scriptDir
+
+}
+
+
+main "$@"

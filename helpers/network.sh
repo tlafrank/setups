@@ -21,16 +21,24 @@ if [ "root" = $USER ]; then
     do
       case $opt in
         'Create bridge')
+        #Need to set ipv4.method to link-local
+        #nmcli conn modify br-40 ipv6.method ignore ipv4.method link-local
+        #Restart NM?
           read -p 'Interface name (br-X): ' ifaceName
           nmcli conn add ifname $ifaceName type bridge con-name $ifaceName
           case $? in 
             0) echo -e "[ ${GREEN}SUCCESS${NC} ] Bridge $ifaceName was created"
-              read -p 'Does the host require any interfaces to be configured? ' continue
-              if [ continue = 'y' ]; then
+              read -n 1 -p 'Does the host require any interfaces to be configured (y/n)? ' continue
+              if [[ $continue =~ [yY] ]]; then
                 read -p 'Interface IP (10.0.5.X/24): ' ifaceAddress
                 read -p 'Interface Gateway (10.0.5.1): ' ifaceGateway
           
                 nmcli conn modify id $ifaceName +ipv4.method manual +ipv4.addresses $ifAddress
+
+                if [[ $ifaceGateway == '' ]]; then
+                  nmcli conn modify id $ifaceName +ipv4.gateway $ifaceGateway
+                fi
+
                 case $? in 
                   0) echo -e "[ ${GREEN}SUCCESS${NC} ] IP addresses were added to $ifaceName";;
                   *) echo -e "[ ${RED}FAILURE${NC} ] The IP addresses could not be added to $ifaceName";;
@@ -39,15 +47,16 @@ if [ "root" = $USER ]; then
           ;;
             *) echo -e "[ ${RED}FAILURE${NC} ] The bridge interface could not be created";;
           esac
-
-          if [ $ifaceGateway == '' ]; then
-            nmcli conn modify id $ifaceName +ipv4.gateway $ifaceGateway
-          fi
           nmcli conn up id $ifaceName
         ;;
         'Configure interface')
           select ifaceName in $(nmcli -t device | awk -F: '{print $1}');
           do
+            #Check that a connection with the same name exists
+
+              #Connection does not already exist
+              #nmcli connection add con-name $ifaceName ifname $ifaceName type ethernet
+
             echo 'Updating' $ifaceName
             read -p 'IP Address (10.0.5.x/24): ' ifaceAddress
             nmcli conn modify id $ifaceName +ipv4.address $ifaceAddress +ipv4.method manual
