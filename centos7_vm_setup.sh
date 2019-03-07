@@ -43,7 +43,7 @@ function main {
         'Install Oracle Java') java;;
         'Fix SSH') fix_ssh;;
         'Setup networking') network;;
-        'Add NFS Share') addNFSMount
+        'Add NFS Share') addNFSMount;;
         *)
           exit;
           break;
