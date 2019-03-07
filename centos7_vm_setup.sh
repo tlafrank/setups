@@ -9,6 +9,55 @@ NC='\033[0m'
 #echo -e "[ ${GREEN}SUCCESS${NC} ] test"
 #echo -e "[ ${RED}FAILED${NC} ] test"
 
+function main {
+  #Check that the script is being run as SUDO.
+  if [ "root" = $USER ]; then
+    echo 'Script is running as SUDO, as expected.'
+
+    PS3="Choice: "
+
+    select opt in \
+      'Update/Upgrade'\
+      'Post Clone Actions'\
+      'Bash Completion'\
+      'Install Git'\
+      'Install Nano'\
+      'Configure CIFS'\
+      'Add NFS Share'\
+      'Setup networking'\
+      'Install Oracle Java'\
+      'Fix SSH'\
+      'Exit'
+    do
+      case $opt in
+        'Update/Upgrade') update;;
+        'Post Clone Actions')
+          fix_ssh
+          #set_interface
+          change_hostname
+        ;;
+        'Bash Completion') bash_completion;;
+        'Install Git') git;;
+        'Install Nano') nano;;
+        'Configure CIFS') cifs;;
+        'Install Oracle Java') java;;
+        'Fix SSH') fix_ssh;;
+        'Setup networking') network;;
+        'Add NFS Share') addNFSMount
+        *)
+          exit;
+          break;
+        ;;
+      esac
+    done
+  else
+    echo 'Script is not running as SUDO (required). Exiting with no changes.'
+  fi
+
+}
+
+
+
 function addNFSMount {
   
   yum -y install nfs-utils.x86_64
@@ -107,44 +156,6 @@ function change_hostname {
 
 }
 
-#Check that the script is being run as SUDO.
-if [ "root" = $USER ]; then
-  echo 'Script is running as SUDO, as expected.'
 
-  PS3="Choice: "
 
-  select opt in \
-    'Update/Upgrade'\
-    'Post Clone Actions'\
-    'Bash Completion'\
-    'Install Git'\
-    'Install Nano'\
-    'Configure CIFS'\
-    'Setup networking'\
-    'Install Oracle Java'\
-    'Fix SSH'\
-    'Exit'
-  do
-    case $opt in
-      'Update/Upgrade') update;;
-      'Post Clone Actions')
-        fix_ssh
-        #set_interface
-        change_hostname
-      ;;
-      'Bash Completion') bash_completion;;
-      'Install Git') git;;
-      'Install Nano') nano;;
-      'Configure CIFS') cifs;;
-      'Install Oracle Java') java;;
-      'Fix SSH') fix_ssh;;
-      'Setup networking') network;;
-      *)
-        exit;
-        break;
-      ;;
-    esac
-  done
-else
-  echo 'Script is not running as SUDO (required). Exiting with no changes.'
-fi
+main "$@"
