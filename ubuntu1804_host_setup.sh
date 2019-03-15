@@ -26,7 +26,7 @@ function main() {
       'Setup NFS Server'\
       'Setup networking'\
       'Remove SUDO Password Requirement'\
-      'Add desktop icon'
+      'Add desktop icon'\
       'Exit'
     do
       case $opt in
