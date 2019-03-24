@@ -22,23 +22,27 @@ function main() {
       'Install KVM'\
       'Install Git'\
       'Install OpenVPN Client'\
+      'Install OpenVPN Server'\
       'Configure CIFS'\
       'Setup NFS Server'\
       'Setup networking'\
       'Remove SUDO Password Requirement'\
       'Add desktop icon'\
+      'Install Sublime'\
       'Exit'
     do
       case $opt in
         'Update/Upgrade') update;;
         'Install KVM') kvm;;
         'Install Git') git;;
-        'Install OpenVPN Client') openvpn;;
+        'Install OpenVPN Client') openvpn_client;;
+        'Install OpenVPN Server') openvpn_server;;
         'Configure CIFS') cifs;;
         'Setup networking') network;;
         'Remove SUDO Password Requirement') removeSudoPassword;;
         'Add desktop icon') addDesktopIcon;;
         'Setup NFS Server') setupNFSServer;;
+        'Install Sublime') sublime;;
         *)
           exit;
           break;
@@ -48,6 +52,57 @@ function main() {
   else
     echo 'Script is not running as SUDO (required). Exiting with no changes.'
   fi
+}
+
+function openvpn_server {
+
+  #Get the external interface IP to use
+  echo "Please select the VPN interface: "
+  select ipAddress in $(ip addr | grep -Po 'inet \K[\d.]+') 
+  do
+
+    break;
+  done
+
+  #Install OpenVPN
+  apt-get -y install openvpn
+
+  #Configure the server
+
+    #Check if the user wants all traffic to go via the VPN (default=off)
+      #/etc/openvpn/server.conf
+      #push "redirect-gateway def1 bypass-dhcp"
+
+    #Set net.ipv4.ip_forward=1 (allow routing)
+
+
+  #Configure certificates
+  #Probably use a separate helper
+
+
+  #Configure the firewall
+  ufw allow openvpn
+  ufw reload
+
+  systemctl restart openvpn@server
+}
+
+
+function sublime {
+
+  #Check if the sublime repo already exists
+
+  if ! [[ -e /etc/apt/sources.list.d/sublime-text.list ]]; then
+    echo -e "[ ${YELLOW}INFO${NC} ] Source for sublime does not currently exist"
+    #Install GPG Key
+    wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo apt-key add -
+    sudo apt-get -y install apt-transport-https
+    echo "deb https://download.sublimetext.com/ apt/stable/" > /etc/apt/sources.list.d/sublime-text.list
+  fi
+
+  apt-get -y update
+  apt-get -y install sublime-text
+
 }
 
 #Update and upgrade the system
@@ -153,7 +208,7 @@ function github {
   git config --global user.name $name
 }
 
-function openvpn {
+function openvpn_client {
   apt install network-manager-openvpn-gnome openvpn-systemd-resolved
 
   #Not clear if this is required
@@ -214,14 +269,6 @@ function virtstuff {
   read -p 'What is the new VM name: ' newDomain
 
   virt-clone --original $originalDomain --name $newDomain --auto-clone
-}
-
-function sublime {
-
-  wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | apt-key add -
-  dd-apt-repository 'deb https://download.sublimetext.com/ apt/stable/'
-  apt-get -y install sublime-text
-
 }
 
 function network {
