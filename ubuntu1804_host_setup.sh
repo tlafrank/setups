@@ -29,6 +29,7 @@ function main() {
       'Remove SUDO Password Requirement'\
       'Add desktop icon'\
       'Install Sublime'\
+      'Install Docker'\
       'Exit'
     do
       case $opt in
@@ -43,6 +44,7 @@ function main() {
         'Add desktop icon') addDesktopIcon;;
         'Setup NFS Server') setupNFSServer;;
         'Install Sublime') sublime;;
+        'Install Docker') install_docker;;
         *)
           exit;
           break;
@@ -52,6 +54,26 @@ function main() {
   else
     echo 'Script is not running as SUDO (required). Exiting with no changes.'
   fi
+}
+
+function install_docker {
+  #Installs docker
+  apt-get -y install apt-transport-https ca-certificates gnupg-agent software-properties-common
+  
+  #Add the GPG key
+  wget -qO - https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+  
+  apt-get -y update
+  
+  apt-get install docker-ce docker-ce-cli containerd.io
+
+  #Add current user to docker group
+  read -n 1 -p "Add the current user $USER to the docker group? (y/n)?" continue
+  if [[ $continue ~= [yY] ]]; then
+    echo "adding user"
+  fi
+
 }
 
 function openvpn_server {
