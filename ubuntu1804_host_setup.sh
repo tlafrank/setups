@@ -1,13 +1,13 @@
 #!/bin/bash
-#Based upon the instructions at https://linuxconfig.org/install-and-set-up-kvm-on-ubuntu-18-04-bionic-beaver-linux
-#test
 
+#Constants
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd)"
+
 
 function main() {
   #Check that the script is being run as SUDO.
@@ -18,33 +18,23 @@ function main() {
     PS3="Choice: "
 
     select opt in \
-      'Update/Upgrade'\
-      'Install KVM'\
-      'Install Git'\
+      'KEEP - Install KVM'\
       'Install OpenVPN Client'\
       'Install OpenVPN Server'\
       'Configure CIFS'\
       'Setup NFS Server'\
-      'Setup networking'\
-      'Remove SUDO Password Requirement'\
-      'Add desktop icon'\
-      'Install Sublime'\
-      'Install Docker'\
+      'KEEP - Add desktop icon'\
+      'KEEP - Install Sublime'\
       'Exit'
     do
       case $opt in
-        'Update/Upgrade') update;;
         'Install KVM') kvm;;
-        'Install Git') git;;
         'Install OpenVPN Client') openvpn_client;;
         'Install OpenVPN Server') openvpn_server;;
         'Configure CIFS') cifs;;
-        'Setup networking') network;;
-        'Remove SUDO Password Requirement') removeSudoPassword;;
         'Add desktop icon') addDesktopIcon;;
         'Setup NFS Server') setupNFSServer;;
-        'Install Sublime') sublime;;
-        'Install Docker') install_docker;;
+        'Install Sublime') install_sublime;;
         *)
           exit;
           break;
@@ -56,25 +46,36 @@ function main() {
   fi
 }
 
-function install_docker {
-  #Installs docker
-  apt-get -y install apt-transport-https ca-certificates gnupg-agent software-properties-common
-  
-  #Add the GPG key
-  wget -qO - https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-  add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
-  
-  apt-get -y update
-  
-  apt-get install docker-ce docker-ce-cli containerd.io
 
-  #Add current user to docker group
-  read -n 1 -p "Add the current user $USER to the docker group? (y/n)?" continue
-  if [[ $continue ~= [yY] ]]; then
-    echo "adding user"
+function kvm {
+  #KVM
+  read -p "Install KVM? " continue
+  if [[ $continue =~ [yY] ]]; then
+    apt-get -y install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virt-manager
+
+    #Add the current user to the relevant groups
+    adduser $SUDO_USER libvirt
+    adduser $SUDO_USER libvirt-qemu
+
+    #Enable bash completion for virsh
+    cp ./helpers/virsh-bash-completion /etc/bash_completion.d/
+
+    ### Configure the network  
+    read -n 1 -p "Remove the libvirt default network? (y/n) " continue
+    if [[ $continue =~ [yY] ]]; then
+      #Configure libvirt's default network
+      virsh net-undefine default
+      #virsh net-define network.xml
+    fi
+
+    #Restart
+    #Could update to remove the requirement to reboot
+    echo 'Please restart the system'
   fi
-
 }
+
+
+
 
 function openvpn_server {
 
@@ -110,29 +111,6 @@ function openvpn_server {
 }
 
 
-function sublime {
-
-  #Check if the sublime repo already exists
-
-  if ! [[ -e /etc/apt/sources.list.d/sublime-text.list ]]; then
-    echo -e "[ ${YELLOW}INFO${NC} ] Source for sublime does not currently exist"
-    #Install GPG Key
-    wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo apt-key add -
-    sudo apt-get -y install apt-transport-https
-    echo "deb https://download.sublimetext.com/ apt/stable/" > /etc/apt/sources.list.d/sublime-text.list
-  fi
-
-  apt-get -y update
-  apt-get -y install sublime-text
-
-}
-
-#Update and upgrade the system
-function update {
-  apt -y update
-  apt -y upgrade
-}
-
 
 #
 function cifs {
@@ -163,72 +141,36 @@ function cifs {
 }
 
 
-function kvm {
-  #KVM
-  read -p "Install KVM? " continue
-  if [ $continue = "y" ]; then
-    apt-get -y install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virt-manager
+function install_networkManager() {
+  #
 
-    #Add the current user to the relevant groups
-    adduser $SUDO_USER libvirt
-    adduser $SUDO_USER libvirt-qemu
+  apt-get -y install network-manager
 
-    #Enable bash completion for virsh
-    cp ./virsh-bash-completion /etc/bash_completion.d/
+  #Start NetworkManager
+  systemctl start NetworkManager
 
-    #Configure the network
-    temp=$(mktemp /tmp/netplanXXXX.yaml)
-    mv /etc/netplan/01-network-manager-all.yaml $temp
-    echo "Original netplan config moved to "$temp
-cat > /etc/netplan/01-network-manager-all.yaml <<EOF
+
+  cat > /etc/netplan/01-network-manager-all.yaml <<EOF
 network:
   version: 2
   renderer: NetworkManager
-  ethernets:
-    eno1:
-      dhcp4: no
-  bridges:
-    br0:
-      interfaces:
-        - eno1
-      dhcp4: no
-      addresses: [10.0.11.10/24]
-      gateway4: 10.0.11.1
-      nameservers:
-        addresses: [8.8.8.8]
 EOF
-    #Restart netplan
-    netplan generate
-    if [ $? = 0 ]; then
-      netplan apply 2> /dev/null
-      netplan apply 2> /dev/null #Every second execution throws an error for some reason.
-    else
-      echo "An error occurred whilst generating the netplan config file."
-    fi
-
-    #Fix routes
-    ip route del default
-
-    #Configure libvirt's default network
-    virsh net-undefine default
-    virsh net-define network.xml
-
-    #Restart
-    #Could update to remove the requirement to reboot
-    echo 'Please restart the system'
+  #Restart netplan
+  netplan generate
+  if [ $? = 0 ]; then
+    netplan apply 2> /dev/null
+    netplan apply 2> /dev/null #Every second execution throws an error for some reason.
+  else
+    echo "An error occurred whilst generating the netplan config file."
   fi
+
+  
+
 }
 
-#Install and conduct basic configuration of git
-function github {
-  apt -y install git
 
-  read -p "Email to use for git registration: " email
-  read -p "Name to use for git registration: " name
 
-  git config --global user.email $email
-  git config --global user.name $name
-}
+
 
 function openvpn_client {
   apt install network-manager-openvpn-gnome openvpn-systemd-resolved
@@ -293,13 +235,7 @@ function virtstuff {
   virt-clone --original $originalDomain --name $newDomain --auto-clone
 }
 
-function network {
-  $DIR/helpers/network.sh
-}
 
-function removeSudoPassword {
-  echo 'made it here'
-}
 
 #Creates a desktop icon for a script
 function addDesktopIcon {
@@ -307,6 +243,20 @@ function addDesktopIcon {
   read -p 'Icon name: ' iconName
   read -e -p 'Path to script' scriptDir
 
+}
+
+function install_sublime {
+  #Check if the sublime repo already exists
+  if ! [[ -e /etc/apt/sources.list.d/sublime-text.list ]]; then
+    echo -e "[ ${YELLOW}INFO${NC} ] Source for sublime does not currently exist"
+    #Install GPG Key
+    wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo apt-key add -
+    sudo apt-get -y install apt-transport-https
+    echo "deb https://download.sublimetext.com/ apt/stable/" > /etc/apt/sources.list.d/sublime-text.list
+  fi
+
+  apt-get -y update
+  apt-get -y install sublime-text
 }
 
 
