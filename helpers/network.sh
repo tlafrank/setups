@@ -306,7 +306,7 @@ function install_NetworkManager() {
 function checkNetworkManager() {
   #Checks that this system has NetworkManager available
   which nmcli > /dev/null
-  if [ $? -eq 1 ]; then
+  if [ $? -eq 0 ]; then
     echo -e "[ ${GREEN}SUCCESS${NC} ] NetworkManager is available"
     return 0
   else
