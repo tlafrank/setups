@@ -18,13 +18,19 @@ function main() {
       clear
       echo '1. Create VM from ISO'
       echo '2. Clone VM'
+      echo '3. Move VM to another host'
+      echo '4. Deploy VM from tar.gz file'
+      echo '5. Expand VM volume'
       echo 'Q. Exit'
 
       read -p "Selection: " choice
 
       case $choice in
         '1') new_vm;;
-        '2') virt-clone;;
+        '2') clone_vm;;
+        '3') move_vm;;
+        '4') deploy_vm;;
+        '5') expand_vm_storage;;
         'Q') break;;
         'q') break;;
         *) echo "Invalid Selection";;
@@ -60,18 +66,101 @@ function new_vm {
 }
 
 #Clones an existing VM
-function virt-clone {
+function clone_vm {
 
-  read -p 'What is the original VM to clone: ' originalDomain
-  read -p 'What is the new VM name: ' newDomain
+  echo "What VM would you like to clone?"
+  echo "VM will be shutdown"
+  select originalDomain in $(virsh list --all | awk 'NR>2 {print $2}' | grep -v '^$');
+  do
+    virsh shutdown $originalDomain 2&> /dev/null
+    echo "Cloning $originalDomain"
+    read -p 'What is the new VM name: ' newDomain
 
-  virt-clone --original $originalDomain --name $newDomain --auto-clone
-  if [ $? == 0 ]; then
-    echo -e "[ ${GREEN}SUCCESS${NC} ] $newDomain was created"
-  else
-    echo -e '[ ${RED}FAILURE{NC} ] A non-zero error code was thrown when attempting to clone' $originalDomain
-  fi
+    virt-clone --original $originalDomain --name $newDomain --auto-clone
+
+    if [ $? == 0 ]; then
+      echo -e "[ ${GREEN}SUCCESS${NC} ] $newDomain was created"
+    else
+      echo -e '[ ${RED}FAILURE{NC} ] A non-zero error code was thrown when attempting to clone' $originalDomain
+    fi
+    break
+  done
+
 }
 
+#Moves an existing VM to another host
+function move_vm {
+
+  echo "What VM would you move?"
+  select originalDomain in $(virsh list --all | awk 'NR>2 {print $2}' | grep -v '^$');
+  do
+    echo "Moving $originalDomain"
+    virsh shutdown $originalDomain 2&> /dev/null
+
+    CUR_DIR=$(pwd)
+    
+    cd /tmp/
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Dumping VMs XML definition"
+    virsh dumpxml $originalDomain > vm_definition.xml
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Moving volume"
+    mv $(grep '<source file=' vm_definition.xml | awk -F\' '{print $2}') /tmp/volume.qcow2
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Adding XML and volume to Tarball"
+    tar -cf $originalDomain.tar vm_definition.xml volume.qcow2
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Compressing Tarball"
+    gzip $originalDomain.tar
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Removing temporary files"
+    rm /tmp/vm_definition.xml
+    rm /tmp/volume.qcow2
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Removing $originalDomain"
+    virsh undefine $originalDomain
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Moving packaged VM to home"
+    mv $originalDomain.tar.gz ~
+
+    #virt-clone --original $originalDomain --name $newDomain --auto-clone
+
+    if [ $? == 0 ]; then
+      echo -e "[ ${GREEN}SUCCESS${NC} ] $originalDomain was packaged for move to another host"
+    else
+      echo -e "[ ${RED}FAILURE{NC} ] $originalDOmain was unable to be moved"
+    fi
+    break
+  done
+
+  cd $CUR_DIR
+}
+
+
+#
+function deploy_vm() {
+  echo "Deploy a VM from a packaged *.tar.gz file"
+
+  echo "Use absolute paths for now (don't use ~)"
+  read -e -p "Path to packaged VM: " path
+
+  echo -e "[ ${YELLOW}INFO${NC} ] Extracting $path"
+  tar xzf $path -C /tmp/
+
+  echo -e "[ ${YELLOW}INFO${NC} ] Moving volume to libvirt image directory"
+  mv /tmp/volume.qcow2 $(grep '<source file=' /tmp/vm_definition.xml | awk -F\' '{print $2}') 
+
+  echo -e "[ ${YELLOW}INFO${NC} ] Importing the VM XML definition"
+  virsh define /tmp/vm_definition.xml
+  rm /tmp/vm_definition.xml
+
+  echo -e "[ ${GREEN}SUCCESS${NC} ] VM was deployed"
+
+}
+
+function expand_vm_storage() {
+  echo "Expand a volume"
+
+}
 
 main $@
