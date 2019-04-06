@@ -2,9 +2,11 @@
 #Helper script for setting up networking with nmcli
 #Should be run as root and is normally called from a higher level script
 
-#Check that this system has nmcli
-
-#Check that the script is being run as SUDO.
+#Constants
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
 
 function main() {
   #Check that the script is being run as SUDO.
@@ -24,6 +26,7 @@ function main() {
       echo '8. Add NFS Mount'
       echo '9. Add CIFS Mount'
       echo '10. Install NetworkManager'
+      echo '11. Save firewall rules (TBA)'
       echo 'Q. Exit'
 
       read -p "Selection: " choice
@@ -52,94 +55,47 @@ function main() {
 
 
 
-function main2() {
-  if [ "root" = $USER ]; then
-    clear
-
-    which nmcli > /dev/null
-
-    if [ $? -eq 0 ]; then
-
-      PS3="Choice: "
-      select opt in \
-        'Create bridge'\
-        'Configure interface'\
-        'Configure NAT'\
-        'Configure IP forwarding'\
-        'Install OpenVPN Server'\
-        'Install OpenVPN Client'\
-        'Install NFS Server'\
-        'Add NFS Mount'\
-        'Add CIFS Mount'\
-        'Install NetworkManager'\
-        'Exit'
-      do
-        case $opt in
-          'Create bridge') create_bridge;;
-          'Configure interface') conf_interface;;
-          'TBA') networkTBA;;
-          'Configure NAT') conf_nat;;
-          'Configure IP forwarding') conf_ipForwarding;;
-          'Install OpenVPN Server') install_openvpn_server;;
-          'Install OpenVPN Client') install_openvpn_client;;
-          'Install NFS Server') install_nfs_server;;
-          'Add NFS Mount') add_mount_nfs;;
-          'Add CIFS Mount') add_mount_cifs;;
-
-          'Install NetworkManager') install_NetworkManager;;
-          *)
-            exit;
-            break;
-         ;;
-        esac
-      done
-
-    else
-      #Could ask to install NetworkManager
-      echo 'NetworkManager is not available on this system'
-      echo 'No changes have been made'      
-    fi
-  fi
-
-}
-
-
-
-
-
 
 
 function create_bridge() {
   #Need to set ipv4.method to link-local
   #nmcli conn modify br-40 ipv6.method ignore ipv4.method link-local
   #Restart NM?
-    read -p 'Interface name (br-X): ' ifaceName
-    nmcli conn add ifname $ifaceName type bridge con-name $ifaceName
-    case $? in 
-      0) echo -e "[ ${GREEN}SUCCESS${NC} ] Bridge $ifaceName was created"
-        read -n 1 -p 'Does the host require any interfaces to be configured (y/n)? ' continue
-        if [[ $continue =~ [yY] ]]; then
-          read -p 'Interface IP (10.0.5.X/24): ' ifaceAddress
-          read -p 'Interface Gateway (10.0.5.1): ' ifaceGateway
-    
-          nmcli conn modify id $ifaceName +ipv4.method manual +ipv4.addresses $ifAddress
 
-          if [[ $ifaceGateway == '' ]]; then
-            nmcli conn modify id $ifaceName +ipv4.gateway $ifaceGateway
-          fi
+  #Check that NetworkManager is available
+  checkNetworkManager
 
-          case $? in 
-            0) echo -e "[ ${GREEN}SUCCESS${NC} ] IP addresses were added to $ifaceName";;
-            *) echo -e "[ ${RED}FAILURE${NC} ] The IP addresses could not be added to $ifaceName";;
-          esac
+  read -p 'Interface name (br-X): ' ifaceName
+  nmcli conn add ifname $ifaceName type bridge con-name $ifaceName
+  case $? in 
+    0) echo -e "[ ${GREEN}SUCCESS${NC} ] Bridge $ifaceName was created"
+      read -n 1 -p 'Does the host require any interfaces to be configured (y/n)? ' continue
+      if [[ $continue =~ [yY] ]]; then
+        read -p 'Interface IP (10.0.5.X/24): ' ifaceAddress
+        read -p 'Interface Gateway (10.0.5.1): ' ifaceGateway
+  
+        nmcli conn modify id $ifaceName +ipv4.method manual +ipv4.addresses $ifAddress
+
+        if [[ $ifaceGateway == '' ]]; then
+          nmcli conn modify id $ifaceName +ipv4.gateway $ifaceGateway
         fi
-    ;;
-      *) echo -e "[ ${RED}FAILURE${NC} ] The bridge interface could not be created";;
-    esac
-    nmcli conn up id $ifaceName
+
+        case $? in 
+          0) echo -e "[ ${GREEN}SUCCESS${NC} ] IP addresses were added to $ifaceName";;
+          *) echo -e "[ ${RED}FAILURE${NC} ] The IP addresses could not be added to $ifaceName";;
+        esac
+      fi
+  ;;
+    *) echo -e "[ ${RED}FAILURE${NC} ] The bridge interface could not be created";;
+  esac
+  nmcli conn up id $ifaceName
 }
 
 function conf_interface() {
+
+  #Check that NetworkManager is available
+  checkNetworkManager
+
   select ifaceName in $(nmcli -t device | awk -F: '{print $1}');
   do
     #Check that a connection with the same name exists
@@ -158,11 +114,12 @@ function conf_interface() {
     nmcli connection up $ifaceName
   done
 
-
-
 }
 
 function conf_nat() {
+  #Check that NetworkManager is available
+  checkNetworkManager
+
   #Ensure that routing is enabled in the kernel
   echo 1 > /proc/sys/net/ipv4/ip_forward
 
@@ -173,17 +130,16 @@ function conf_nat() {
     echo 'Select internal inteface'
     select ifaceIn in $(nmcli -t device | awk -F: '{print $1}');
     do
-      #eth1 = ifaceIn
-      #eth0 = ifaceOut
       #From https://www.revsys.com/writings/quicktips/nat.html
       iptables -t nat -A POSTROUTING -o $ifaceOut -j MASQUERADE
       iptables -A FORWARD -i $ifaceOut -o $ifaceIn -m state --state RELATED,ESTABLISHED -j ACCEPT
       iptables -A FORWARD -i $ifaceIn -o $ifaceOut -j ACCEPT
-
+      break
     done
+    break
   done
 
-
+  echo -e "[ ${GREEN}SUCCESS${NC} ] NAT configured"
 }
 
 function conf_ipForwarding() {
@@ -229,7 +185,7 @@ function install_openvpn_server() {
 }
 
 function install_openvpn_client() {
-  apt install network-manager-openvpn-gnome openvpn-systemd-resolved
+#  apt install network-manager-openvpn-gnome openvpn-systemd-resolved
 
   #Not clear if this is required
   #apt install openvpn
@@ -322,7 +278,7 @@ function install_NetworkManager() {
   apt-get -y install network-manager
 
   ###Disable netplan
-  #Delete existing netplan configs
+  #Remove existing netplan configs
   temp=$(mktemp /tmp/netplanXXXX.yaml)
   mv /etc/netplan/01-network-manager-all.yaml $temp
   echo "Original netplan config moved to "$temp
@@ -347,7 +303,23 @@ function install_NetworkManager() {
 
 }
 
-
+function checkNetworkManager() {
+  #Checks that this system has NetworkManager available
+  which nmcli > /dev/null
+  if [ $? -eq 1 ]; then
+    echo -e "[ ${GREEN}SUCCESS${NC} ] NetworkManager is available"
+    return 0
+  else
+    echo -e "[ ${RED}FAILURE${NC} ] NetworkManager not available"
+    read -n1 -p "Would you like to install NetworkManager? (y/n) " continue
+    if [[ $continue =~ [yY] ]]; then
+      install_NetworkManager
+    else
+      echo -e "\n[ ${RED}FAILURE${NC} ] NetworkManager not available and is required"
+      exit 1
+    fi
+  fi
+}
 
 
 
