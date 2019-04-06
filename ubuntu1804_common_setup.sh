@@ -44,8 +44,6 @@ function main() {
 }
 
 
-
-
 #Update and upgrade the system
 #Checked 4 Apr 19
 function update {
@@ -54,6 +52,7 @@ function update {
 }
 
 #Install and conduct basic configuration of git
+#Checked 6 Apr 19
 function install_git() {
   apt-get -y install git
 

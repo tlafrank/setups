@@ -16,9 +16,9 @@ function main() {
     while [[ true ]];
     do
       clear
-      echo '1. KEEP - Install KVM'
-      echo '2. KEEP - Add desktop icon'
-      echo '3. KEEP - Install Sublime'
+      echo '1. Install KVM'
+      echo '2. Add desktop icon'
+      echo '3. Install Sublime'
       echo 'Q. Exit'
 
       read -p "Selection: " choice

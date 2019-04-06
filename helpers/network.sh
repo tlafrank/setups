@@ -8,6 +8,7 @@ RED='\033[0;31m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
+#Checked 6 Apr 19
 function main() {
   #Check that the script is being run as SUDO.
   if [ "root" = $USER ]; then
@@ -58,10 +59,6 @@ function main() {
 
 
 function create_bridge() {
-  #Need to set ipv4.method to link-local
-  #nmcli conn modify br-40 ipv6.method ignore ipv4.method link-local
-  #Restart NM?
-
   #Check that NetworkManager is available
   checkNetworkManager
 
@@ -92,6 +89,7 @@ function create_bridge() {
 }
 
 function conf_interface() {
+  #Needs work, expects device and connection name to be the same. Perhaps this can delete all 'Wired Connection X' connections and recreate them?
 
   #Check that NetworkManager is available
   checkNetworkManager
@@ -116,11 +114,13 @@ function conf_interface() {
 
 }
 
+#Temporarily configures NAT between two interfaces
+#Checked 6 Apr 19
 function conf_nat() {
   #Check that NetworkManager is available
   checkNetworkManager
 
-  #Ensure that routing is enabled in the kernel
+  #Ensure that routing is enabled in the kernel (temporary)
   echo 1 > /proc/sys/net/ipv4/ip_forward
 
   #
@@ -142,14 +142,17 @@ function conf_nat() {
   echo -e "[ ${GREEN}SUCCESS${NC} ] NAT configured"
 }
 
+#Allows the kernel to undertake routing of IP traffic on a permanent basis
+#Checked 6 Apr 19
 function conf_ipForwarding() {
-  sysctl -w net.ipv4.ip_forward=1 > /dev/null
+  sed 's/^#*net\.ipv4\.ip_forward=./net.ipv4.ip_forward=1/' /etc/sysctl.conf
+  sysctl -p /etc/sysctl.conf
+
   case $? in 
     0) echo -e "[ ${GREEN}SUCCESS${NC} ] net.ipv4.ip_forward was updated";;
     *) echo -e "[ ${RED}FAILURE${NC} ] There was an error updating net.ipv4.ip_forward";;
   esac
 }
-
 
 function install_openvpn_server() {
 
@@ -272,7 +275,8 @@ function add_mount_cifs() {
   done
 }
 
-
+#Installs NetowrkManager and configures netplan to use NetworkManager exclusively
+#Checked 6 Apr 19 - Need to test once more on fresh install
 function install_NetworkManager() {
 
   apt-get -y install network-manager
@@ -281,26 +285,28 @@ function install_NetworkManager() {
   #Remove existing netplan configs
   rm -rf /etc/netplan/*.yaml
 
+  systemctl start NetworkManager
 
   #Create a new netplan config file, directing NetworkManager to controll system network interfaces
   touch /etc/netplan/01-network-manager-all.yaml
   echo "network:" >> /etc/netplan/01-network-manager-all.yaml
   echo "  version: 2" >> /etc/netplan/01-network-manager-all.yaml
-
+  echo "  renderer: NetworkManager" >> /etc/netplan/01-network-manager-all.yaml
+  
   #Restart netplan
   netplan generate
   if [ $? = 0 ]; then
     netplan apply 
-    #netplan apply 2> /dev/null #Every second execution throws an error for some reason.
   else
-    echo "An error occurred whilst generating the netplan config file."
+    echo -e "[ ${RED}FAILURE${NC} ] Error occurred whilst applying the new netplan configuration"
   fi
-
-  #Fix routes
-  #ip route del default
 
 }
 
+#Checks if NetworkManager is available. Used by those functions
+# which use nmcli. Reports an error and exits the script if NetworkManager
+# installation is cancelled.
+#Checked 6 Apr 19
 function checkNetworkManager() {
   #Checks that this system has NetworkManager available
   which nmcli > /dev/null
@@ -318,7 +324,5 @@ function checkNetworkManager() {
     fi
   fi
 }
-
-
 
 main $@
