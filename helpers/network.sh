@@ -7,6 +7,52 @@
 #Check that the script is being run as SUDO.
 
 function main() {
+  #Check that the script is being run as SUDO.
+  if [ "root" = $USER ]; then
+    #Running as sudo, as expected
+    
+    while [[ true ]];
+    do
+      clear
+      echo '1. Create bridge'
+      echo '2. Configure interface'
+      echo '3. Configure NAT'
+      echo '4. Configure IP forwarding'
+      echo '5. Install OpenVPN Server'
+      echo '6. Install OpenVPN Client'
+      echo '7. Install NFS Server'
+      echo '8. Add NFS Mount'
+      echo '9. Add CIFS Mount'
+      echo '10. Install NetworkManager'
+      echo 'Q. Exit'
+
+      read -p "Selection: " choice
+
+      case $choice in
+        '1') create_bridge;;
+        '2') conf_interface;;
+        '3') conf_nat;;
+        '4') conf_ipForwarding;;
+        '5') install_openvpn_server;;
+        '6') install_openvpn_client;;
+        '7') install_nfs_server;;
+        '8') add_mount_nfs;;
+        '9') add_mount_cifs;;
+        '10') install_NetworkManager;;
+        'Q') break;;
+        'q') break;;
+        *) echo "Invalid Selection";;
+      esac
+      read -n 1 -p "Press any key to continue..."
+    done
+  else
+    echo 'Script is not running as SUDO (required). Exiting with no changes.'
+  fi
+}
+
+
+
+function main2() {
   if [ "root" = $USER ]; then
     clear
 

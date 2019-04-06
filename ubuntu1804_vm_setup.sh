@@ -11,35 +11,30 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd)"
 function main() {
   #Check that the script is being run as SUDO.
   if [ "root" = $USER ]; then
-    echo 'Script is running as SUDO, as expected.'
-
-    PS3="Choice: "
-
-    select opt in \
-      'Create VM from ISO'\
-      'Clone VM'\
-      'Configure CIFS'\
-      'Exit'
+    #Running as sudo, as expected
+    
+    while [[ true ]];
     do
-      case $opt in
-        'Create VM from ISO') new_vm;;
-        'Clone VM') virt-clone;;
-        'Configure CIFS') cifs;;
-        *)
-          exit;
-          break;
-        ;;
+      clear
+      echo '1. Create VM from ISO'
+      echo '2. Clone VM'
+      echo 'Q. Exit'
+
+      read -p "Selection: " choice
+
+      case $choice in
+        '1') new_vm;;
+        '2') virt-clone;;
+        'Q') break;;
+        'q') break;;
+        *) echo "Invalid Selection";;
       esac
+      read -n 1 -p "Press any key to continue..."
     done
   else
     echo 'Script is not running as SUDO (required). Exiting with no changes.'
   fi
-
-
 }
-
-
-
 
 
 #Creates a new VM from an ISO file.
@@ -76,18 +71,6 @@ function virt-clone {
   else
     echo -e '[ ${RED}FAILURE{NC} ] A non-zero error code was thrown when attempting to clone' $originalDomain
   fi
-}
-
-
-
-
-
-function virtstuff {
-
-  read -p 'What is the original VM to clone: ' originalDomain
-  read -p 'What is the new VM name: ' newDomain
-
-  virt-clone --original $originalDomain --name $newDomain --auto-clone
 }
 
 

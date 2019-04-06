@@ -9,45 +9,42 @@ NC='\033[0m'
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd)"
 
-
 function main() {
   #Check that the script is being run as SUDO.
   if [ "root" = $USER ]; then
-    clear
-    echo 'Script is running as SUDO, as expected. xx'
-
-    PS3="Choice: "
-
-    select opt in \
-      'Update/Upgrade'\
-      'Install Git'\
-      'Install Docker'\
-      'Remove SUDO Password Requirement'\
-      'Setup networking'\
-      'Exit'
+    #Running as sudo, as expected
+    
+    while [[ true ]];
     do
-      case $opt in
-        'Update/Upgrade') update;;
-        'Install Git') install_git;;
-        'Install Docker') install_docker;;
-        'Remove SUDO Password Requirement') removeSudoPassword;;
-        'Setup networking') setup_network;;
-        *)
-          exit;
-          break;
-        ;;
+      clear
+      echo '1. Update/Upgrade'
+      echo '2. Install Git'
+      echo '3. Install Docker'
+      echo '4. Remove SUDO Password Requirement'
+      echo '5. Setup networking'
+      echo 'Q. Exit'
+
+      read -p "Selection: " choice
+
+      case $choice in
+        '1') update;;
+        '2') install_git;;
+        '3') install_docker;;
+        '4') removeSudoPassword;;
+        '5') setup_network;;
+        'Q') break;;
+        'q') break;;
+        *) echo "Invalid Selection";;
       esac
-      echo 'Update/Upgrade'
-      echo 'Install Git'
-      echo 'Install Docker'
-      echo 'Remove SUDO Password Requirement'
-      echo 'Setup networking'
-      echo 'Exit'
+      read -n 1 -p "Press any key to continue..."
     done
   else
     echo 'Script is not running as SUDO (required). Exiting with no changes.'
   fi
 }
+
+
+
 
 #Update and upgrade the system
 #Checked 4 Apr 19
