@@ -279,9 +279,7 @@ function install_NetworkManager() {
 
   ###Disable netplan
   #Remove existing netplan configs
-  temp=$(mktemp /tmp/netplanXXXX.yaml)
-  mv /etc/netplan/01-network-manager-all.yaml $temp
-  echo "Original netplan config moved to "$temp
+  rm -rf /etc/netplan/*.yaml
 
 
   #Create a new netplan config file, directing NetworkManager to controll system network interfaces
@@ -292,8 +290,8 @@ function install_NetworkManager() {
   #Restart netplan
   netplan generate
   if [ $? = 0 ]; then
-    netplan apply 2> /dev/null
-    netplan apply 2> /dev/null #Every second execution throws an error for some reason.
+    netplan apply 
+    #netplan apply 2> /dev/null #Every second execution throws an error for some reason.
   else
     echo "An error occurred whilst generating the netplan config file."
   fi
