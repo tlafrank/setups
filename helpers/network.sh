@@ -186,7 +186,7 @@ function install_openvpn_server() {
 
 function install_openvpn_client() {
 #  apt install network-manager-openvpn-gnome openvpn-systemd-resolved
-
+  echo "needs work"
   #Not clear if this is required
   #apt install openvpn
 }
