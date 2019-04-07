@@ -27,7 +27,8 @@ function main() {
       echo '8. Add NFS Mount'
       echo '9. Add CIFS Mount'
       echo '10. Install NetworkManager'
-      echo '11. Save firewall rules (TBA)'
+      echo '11. Change NetworkManager-wait-online.service timeout'
+      echo '12. Save firewall rules (TBA)'
       echo 'Q. Exit'
 
       read -p "Selection: " choice
@@ -43,6 +44,7 @@ function main() {
         '8') add_mount_nfs;;
         '9') add_mount_cifs;;
         '10') install_NetworkManager;;
+        '11') changeNMTimeout;;
         'Q') break;;
         'q') break;;
         *) echo "Invalid Selection";;
@@ -322,6 +324,19 @@ function checkNetworkManager() {
       echo -e "\n[ ${RED}FAILURE${NC} ] NetworkManager not available and is required"
       exit 1
     fi
+  fi
+}
+
+function changeNMTimeout(){
+  #Check that NetworkManager is available
+  checkNetworkManager
+
+  which nano
+  if [[ $? -eq 0 ]]; then
+    #Nano exists
+    nano /lib/systemd/system/NetworkManager-wait-online.service
+  else
+    vi /lib/systemd/system/NetworkManager-wait-online.service
   fi
 }
 
