@@ -72,10 +72,12 @@ function clone_vm {
   echo "VM will be shutdown"
   select originalDomain in $(virsh list --all | awk 'NR>2 {print $2}' | grep -v '^$');
   do
-    virsh shutdown $originalDomain 2&> /dev/null
-    echo "Cloning $originalDomain"
     read -p 'What is the new VM name: ' newDomain
 
+    echo -e "[ ${YELLOW}INFO${NC} ] Shutting down $originalDomain, if up"
+    virsh shutdown $originalDomain 2&> /dev/null
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Cloning $originalDomain"
     virt-clone --original $originalDomain --name $newDomain --auto-clone
 
     if [ $? == 0 ]; then
