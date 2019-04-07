@@ -24,11 +24,12 @@ function main() {
       echo '5. Install OpenVPN Server'
       echo '6. Install OpenVPN Client'
       echo '7. Install NFS Server'
-      echo '8. Add NFS Mount'
-      echo '9. Add CIFS Mount'
-      echo '10. Install NetworkManager'
-      echo '11. Change NetworkManager-wait-online.service timeout'
-      echo '12. Save firewall rules (TBA)'
+      echo '8. Install SMB Server'
+      echo '9. Add NFS Mount'
+      echo '10. Add CIFS Mount'
+      echo '11. Install NetworkManager'
+      echo '12. Change NetworkManager-wait-online.service timeout'
+      echo '13. Save firewall rules (TBA)'
       echo 'Q. Exit'
 
       read -p "Selection: " choice
@@ -41,10 +42,11 @@ function main() {
         '5') install_openvpn_server;;
         '6') install_openvpn_client;;
         '7') install_nfs_server;;
-        '8') add_mount_nfs;;
-        '9') add_mount_cifs;;
-        '10') install_NetworkManager;;
-        '11') changeNMTimeout;;
+        '8') install_smb_server;;
+        '9') add_mount_nfs;;
+        '10') add_mount_cifs;;
+        '11') install_NetworkManager;;
+        '12') changeNMTimeout;;
         'Q') break;;
         'q') break;;
         *) echo "Invalid Selection";;
@@ -230,6 +232,50 @@ function install_nfs_server() {
   echo "[   NOTE  ] Firewall configurationn may be required for some systems."
 }
 
+function install_smb_server() {
+
+  apt-get -y install samba
+
+  #Firewall rules
+  #Need to allow UDP137,UDP138,TCP139,TCP445.
+  #ufw allow 'Samba'
+
+  read -n 1 -p "Do you wish to add an SMB user? (y/n) " continue
+  if [[ $continue =~ [yY] ]]; then
+    read -p "Username: " username
+
+    useradd -M -N -s /usr/sbin/nologin useru
+    
+    smbpasswd -a $username
+    smbpasswd -e $username
+  fi
+
+  read -n 1 -p "Do you wish to add any SMB shares? (y/n) " continue
+  if [[ $continue =~ [yY] ]]; then
+    read -p "Path of new share: " sharePath
+
+    mkdir $sharePath
+    chmod 777 $sharePath
+
+    echo "[public]" >> /etc/samba/smb.conf
+    echo "  path = $sharePath" >> /etc/samba/smb.conf
+    echo "  browsable = yes" >> /etc/samba/smb.conf
+    echo "  create mask = 0660" >> /etc/samba/smb.conf
+    echo "  directory mask = 0771" >> /etc/samba/smb.conf
+    echo "  writable = yes" >> /etc/samba/smb.conf
+    echo "  guest ok = yes" >> /etc/samba/smb.conf
+    #echo "#  valid users = " >> /etc/samba/smb.conf
+    
+    
+
+  fi
+
+  
+
+
+  systemctl restart nmbd
+
+}
 
 function add_mount_nfs() {
   
