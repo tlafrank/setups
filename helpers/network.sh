@@ -198,7 +198,7 @@ function install_openvpn_client() {
   #apt install openvpn
 }
 
-#
+#Setup an NFS server. Prefered to use if clients will only be linux machines
 function install_nfs_server() {
 
   apt -y install nfs-kernel-server
@@ -208,6 +208,7 @@ function install_nfs_server() {
   read -e -p 'Folder to share: ' shareFolder
 
   mkdir $shareFolder 2> /dev/null
+
   if [ $? -eq 0 ]; then
     echo 'Configuring permissions'
     chown nobody:nogroup $shareFolder
@@ -229,9 +230,11 @@ function install_nfs_server() {
 
   systemctl restart nfs-kernel-server
 
-  echo "[   NOTE  ] Firewall configurationn may be required for some systems."
+  echo "[ ${YELLOW}NOTE${NC} ] Firewall configurationn may be required for some systems."
 }
 
+
+#Setup a SAMBA server. Useful if you need to host files for windows clients
 function install_smb_server() {
 
   apt-get -y install samba
@@ -248,6 +251,7 @@ function install_smb_server() {
     
     smbpasswd -a $username
     smbpasswd -e $username
+    #SMB users can be found by 
   fi
 
   read -n 1 -p "Do you wish to add any SMB shares? (y/n) " continue
@@ -384,6 +388,13 @@ function changeNMTimeout(){
   else
     vi /lib/systemd/system/NetworkManager-wait-online.service
   fi
+}
+
+function setHostname(){
+  echo "Set hostname"
+  read -p "New hostname: " name
+  hostnamectl set-hostname $name
+
 }
 
 main $@

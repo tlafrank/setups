@@ -19,6 +19,7 @@ function main() {
       echo '1. Install KVM'
       echo '2. Add desktop icon'
       echo '3. Install Sublime'
+      echo '4. Install iPhone USB Tethering'
       echo 'Q. Exit'
 
       read -p "Selection: " choice
@@ -27,6 +28,7 @@ function main() {
         '1') install_kvm;;
         '2') addDesktopIcon;;
         '3') install_sublime;;
+        '4') install_iphone_tethering;;
         'Q') break;;
         'q') break;;
         *) echo "Invalid Selection";;
@@ -88,5 +90,15 @@ function install_sublime {
   apt-get -y install sublime-text
 }
 
+
+function install_iphone_tethering() {
+  echo -e "[ ${YELLOW}INFO${NC} ] Installing required packages"
+  apt-get -y install ipheth-utils libimobiledevice-dev libimobiledevice-utils
+  if [[ $? -eq 0 ]]; then
+    echo -e "[${GREEN}SUCCESS${NC}] Packages installed"
+  else
+    echo -e "[${RED}ERROR${NC}] An unknown error occurred"
+  fi
+}
 
 main "$@"

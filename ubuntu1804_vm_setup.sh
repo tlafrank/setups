@@ -163,6 +163,28 @@ function deploy_vm() {
 function expand_vm_storage() {
   echo "Expand a volume"
 
+  echo "What volume would you ike to expand?"
+  echo "VM will be shutdown"
+  select volumeFile in $(ls /var/lib/libvirt/images/);
+  do
+    read -p 'How much to increase volume by (Gb): ' newSize
+
+    echo -e "[ ${YELLOW}INFO${NC} ] Shutting down $originalDomain, if up"
+    #virsh shutdown $originalDomain 2&> /dev/null
+
+    qemu-img resize /var/lib/libvirt/images/$volumeFile +$newSize"G"
+
+    if [ $? == 0 ]; then
+      echo -e "[ ${GREEN}SUCCESS${NC} ] $newDomain was created"
+      echo "Expand the volume within the VM using the X command"
+    else
+      echo -e '[ ${RED}FAILURE{NC} ] A non-zero error code was thrown when attempting to clone' $originalDomain
+    fi
+    break
+  done
+
+
+
 }
 
 main $@
