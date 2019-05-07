@@ -230,7 +230,7 @@ function install_nfs_server() {
 
   systemctl restart nfs-kernel-server
 
-  echo "[ ${YELLOW}NOTE${NC} ] Firewall configurationn may be required for some systems."
+  echo "[ ${YELLOW}NOTE${NC} ] Firewall configuration may be required for some systems."
 }
 
 

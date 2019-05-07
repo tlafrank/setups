@@ -70,6 +70,7 @@ function clone_vm {
 
   echo "What VM would you like to clone?"
   echo "VM will be shutdown"
+
   select originalDomain in $(virsh list --all | awk 'NR>2 {print $2}' | grep -v '^$');
   do
     read -p 'What is the new VM name: ' newDomain
@@ -97,7 +98,7 @@ function move_vm {
   select originalDomain in $(virsh list --all | awk 'NR>2 {print $2}' | grep -v '^$');
   do
     echo "Moving $originalDomain"
-    virsh shutdown $originalDomain 2&> /dev/null
+    virsh shutdown $originalDomain
 
     CUR_DIR=$(pwd)
     
@@ -176,7 +177,7 @@ function expand_vm_storage() {
 
     if [ $? == 0 ]; then
       echo -e "[ ${GREEN}SUCCESS${NC} ] $newDomain was created"
-      echo "Expand the volume within the VM using the X command"
+      echo "Expand the volume within the VM using the fdisk -l, parted and resize2fs commands"
     else
       echo -e '[ ${RED}FAILURE{NC} ] A non-zero error code was thrown when attempting to clone' $originalDomain
     fi
