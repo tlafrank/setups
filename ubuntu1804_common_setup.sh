@@ -20,7 +20,7 @@ function main() {
       echo '1. Update/Upgrade'
       echo '2. Install Git'
       echo '3. Install Docker'
-      echo '4. Remove SUDO Password Requirement'
+      echo '4. Remove SUDO Password Requirement (TBA)' 
       echo '5. Setup networking'
       echo 'Q. Exit'
 
@@ -42,6 +42,7 @@ function main() {
     echo 'Script is not running as SUDO (required). Exiting with no changes.'
   fi
 }
+
 
 
 #Update and upgrade the system
@@ -86,6 +87,7 @@ function install_docker {
 
 function removeSudoPassword {
   echo 'made it here'
+  #USERNAME ALL=(ALL) NOPASSWD:ALL
 }
 
 function setup_network() {
