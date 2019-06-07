@@ -46,6 +46,7 @@ function main() {
 #Creates a new VM from an ISO file.
 function new_vm {
   #This can be done, but is rather pointless as you need a graphical interface to undertake the installation
+  echo "Total number of cores is: $(getconf _NPROCESSORS_ONLN)"
   
   #When accessing the remote VM's craphical interface, ensure that the VM's 'Display VNC' hardware type is set to VNC server.
   read -p 'Name of new VM: ' vmName
