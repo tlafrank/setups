@@ -63,7 +63,8 @@ function new_vm {
   --vcpus=$vmCPU \
   --memory=$vmRAM \
   --cdrom=$isoFile \
-  --disk size=$vmHDD,path=/var/lib/libvirt/images/$vmName.img
+  --disk size=$vmHDD,path=/var/lib/libvirt/images/$vmName.img \
+  --graphics vnc
 }
 
 #Clones an existing VM
