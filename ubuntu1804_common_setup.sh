@@ -64,8 +64,20 @@ function install_git() {
   git config --global user.name $name
 }
 
-
 function install_docker {
+  #Prefer this one
+  add-apt-repository universe
+  apt install -y docker.io
+  
+  #Add current user to docker group
+  read -n 1 -p "Add the current user $USER to the docker group? (y/n)?" continue
+  if [[ $continue =~ [yY] ]]; then
+    echo "adding user"
+    usermod -aG docker $USER
+  fi
+}
+
+function install_docker2 {
   #Installs docker
   apt-get -y install apt-transport-https ca-certificates gnupg-agent software-properties-common
   
@@ -81,6 +93,7 @@ function install_docker {
   read -n 1 -p "Add the current user $USER to the docker group? (y/n)?" continue
   if [[ $continue =~ [yY] ]]; then
     echo "adding user"
+    usermod -aG docker $USER
   fi
 
 }
