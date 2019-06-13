@@ -180,6 +180,8 @@ function expand_vm_storage() {
     if [ $? == 0 ]; then
       echo -e "[ ${GREEN}SUCCESS${NC} ] $newDomain was created"
       echo "Expand the volume within the VM using the fdisk -l, parted and resize2fs commands"
+      echo "- growpart /dev/vda 2"
+      echo "- resize2fs /dev/vda2"
     else
       echo -e '[ ${RED}FAILURE{NC} ] A non-zero error code was thrown when attempting to clone' $originalDomain
     fi
