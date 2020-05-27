@@ -8,6 +8,12 @@ NC='\033[0m'
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd)"
 
+#/etc/issue
+
+#Add:
+#enp0s3: \4{enp0s3}
+
+
 function main() {
   #Check that the script is being run as SUDO.
   if [ "root" = $USER ]; then
