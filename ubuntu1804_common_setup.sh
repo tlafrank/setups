@@ -100,7 +100,10 @@ function install_docker2 {
 
 function removeSudoPassword {
   echo 'made it here'
-  #USERNAME ALL=(ALL) NOPASSWD:ALL
+  #sudo visudo
+  
+  #At the bottom, add:
+  #$USER ALL=(ALL) NOPASSWD:ALL
 }
 
 function setup_network() {
