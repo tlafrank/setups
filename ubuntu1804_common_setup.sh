@@ -22,6 +22,7 @@ function main() {
       echo '3. Install Docker'
       echo '4. Remove SUDO Password Requirement (TBA)' 
       echo '5. Setup networking'
+      echo '6. Setup database, node'
       echo 'Q. Exit'
 
       read -p "Selection: " choice
@@ -32,6 +33,7 @@ function main() {
         '3') install_docker;;
         '4') removeSudoPassword;;
         '5') setup_network;;
+        '6') setup_database;;
         'Q') break;;
         'q') break;;
         *) echo "Invalid Selection";;
@@ -43,6 +45,17 @@ function main() {
   fi
 }
 
+
+#
+#
+function setup_database {
+  echo "Setting up mySql"
+  apt-get -y mysql-server
+  
+  
+  echo "Setting up node"
+  
+}
 
 
 #Update and upgrade the system
