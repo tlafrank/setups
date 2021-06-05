@@ -1,4 +1,5 @@
 #!/bin/bash
+#Use git clone https://gitbub.com/tlafrank/setups
 
 
 #Constants
@@ -49,12 +50,7 @@ function main() {
 #
 #
 function setup_database {
-  echo "Setting up mySql"
-  apt-get -y mysql-server
-  
-  
-  echo "Setting up node"
-  
+  echo "Use the appropriate script located in the helper folder"
 }
 
 
