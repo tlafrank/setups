@@ -30,6 +30,7 @@ EOL
 service smbd restart
 
 smbpasswd -a $USER
+smbpasswd -e $USER
 
 #Configure mySQL
 mysql_secure_installation
